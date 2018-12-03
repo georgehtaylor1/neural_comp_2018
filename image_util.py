@@ -18,7 +18,7 @@ data_dir = root_dir + "data/"
 train_dir = data_dir + "train/"
 annotations_file = train_dir + "annotations.csv"
 train_tensor_file = data_dir + "train_tensors.tfrecords"
-
+train_image_count = 25096
 
 def _int64_feature(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
@@ -75,6 +75,7 @@ def write_tensor(count=-1, output=0, filt=lambda i, lb, lv: True):
                     tf.logging.info("Written entry {}".format(i))
             i += 1
 
+
 def mean(count=-1, output=0, filt=lambda i, lb, lv: True):
     imgs = load_images(count=count, output=output, filt=filt)
     m, _, _ = imgs.__next__()
@@ -83,6 +84,7 @@ def mean(count=-1, output=0, filt=lambda i, lb, lv: True):
         m += img
         i += 1
     return m / i
+
 
 def variance(count=-1, output=0, filt=lambda i, lb, lv: True):
     imgs = load_images(count=count, output=output, filt=filt)
