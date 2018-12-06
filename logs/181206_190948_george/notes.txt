@@ -1,0 +1,1 @@
+optimizer: adamloss function: <bound method Wrapper.root_mean_squared_error of <wrapper.Wrapper object at 0x7fcea9a3e2e8>>batch size: 100# Epochs: 2000Learning rate: 0.2

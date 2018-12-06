@@ -1,0 +1,4 @@
+batch_size=100
+num_epochs=1000
+
+using rmse, still improving at end of training
