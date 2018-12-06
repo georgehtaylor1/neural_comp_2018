@@ -6,8 +6,11 @@ import argparse
 
 import numpy as np
 import tensorflow as tf
-
+from keras import optimizers
+import keras
+import keras.backend as K
 import image_util
+import datetime
 
 FLAGS = None
 
@@ -43,9 +46,9 @@ def inputs(batch_size, num_epochs):
     with tf.name_scope('input'):
         dataset = tf.data.TFRecordDataset(image_util.train_tensor_file)
         dataset = dataset.map(decode)
-        dataset = dataset.shuffle(image_util.train_image_count)
+        # dataset = dataset.shuffle(image_util.train_image_count)
         dataset = dataset.repeat(num_epochs)
-        dataset = dataset.batch(batch_size)
+        dataset = dataset.batch(batch_size, drop_remainder=True)
 
         iterator = dataset.make_one_shot_iterator()
     return iterator.get_next()
@@ -57,6 +60,10 @@ def run_trainin(model):
             train=True, batch_size=FLAGS.batch_size, num_epochs=FLAGS.num_epochs)
 
 
+def root_mean_squared_error(y_true, y_pred):
+    return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1))
+
+
 def main(_):
     sess = tf.Session()
     tf.keras.backend.set_session(sess)
@@ -64,17 +71,29 @@ def main(_):
 
     image_batch, label_batch = inputs(batch_size=FLAGS.batch_size, num_epochs=FLAGS.num_epochs)
 
-    model = tf.keras.Sequential([
-        tf.keras.layers.Dense(10000, input_shape=(250000,), activation=tf.nn.sigmoid),
-        tf.keras.layers.Dense(100, activation=tf.nn.sigmoid),
-        tf.keras.layers.Dense(4)
-    ])
+    model = keras.Sequential()
+    model.add(keras.layers.Dense(10, input_shape=(750000,), kernel_initializer='uniform', activation=tf.nn.sigmoid))
+    model.add(keras.layers.Dense(10000, activation=tf.nn.sigmoid))
+    model.add(keras.layers.Dense(100, activation=tf.nn.sigmoid))
+    model.add(keras.layers.Dense(4))
 
-    model.compile(optimizer=tf.keras.optimizers.Adam,
-                  loss='mse',
+    model.compile(optimizer='adam',
+                  loss=root_mean_squared_error,
                   metrics=['accuracy'])
 
-    model.fit(image_batch, label_batch, epochs=FLAGS.num_epochs, batch_size=FLAGS.batch_size)
+    tensorboard = keras.callbacks.TensorBoard(log_dir='./logs/{0:%y%m%d_%H%M%S}/'.format(datetime.datetime.now()),
+                                              histogram_freq=0,
+                                              batch_size=FLAGS.batch_size,
+                                              write_graph=True,
+                                              write_grads=False,
+                                              write_images=False,
+                                              embeddings_freq=0,
+                                              embeddings_layer_names=None,
+                                              embeddings_metadata=None,
+                                              embeddings_data=None,
+                                              update_freq='epoch')
+
+    model.fit(image_batch, label_batch, epochs=FLAGS.num_epochs, steps_per_epoch=1, callbacks=[tensorboard])
 
 
 if __name__ == "__main__":
@@ -87,12 +106,12 @@ if __name__ == "__main__":
     parser.add_argument(
         '--num_epochs',
         type=int,
-        default=2,
+        default=2000,
         help='Number of epochs to run trainer.')
     parser.add_argument(
         '--batch_size',
         type=int,
-        default=100,
+        default=20,
         help='Batch size.')
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run()
